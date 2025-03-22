@@ -10,7 +10,6 @@ import qwiic_i2c # mpremote mip install github:sparkfun/qwiic_i2c_py
 I2C_SDA_PIN = 6
 I2C_SCL_PIN = 7
 
-
 i2c_bus = qwiic_i2c.get_i2c_driver(sda=I2C_SDA_PIN, scl=I2C_SCL_PIN, freq=100000)
 
 # Perform scan of I2C bus
