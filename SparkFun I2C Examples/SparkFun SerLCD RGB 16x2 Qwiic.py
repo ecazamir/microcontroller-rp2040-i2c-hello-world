@@ -41,9 +41,9 @@ def runExample():
       file=sys.stderr)
     return
 
-  myLCD.setBacklight(50, 200, 0) # Set backlight to a greenish color
+  myLCD.setBacklight(50, 200, 200) # Set backlight to a turquoise-ish color
   myLCD.setContrast(4) # set contrast. Lower to 0 for higher contrast.
-  myLCD.clearScreen() # clear the screen - this moves the cursor to the home position as well
+  myLCD.clearScreen()  # clear the screen - this moves the cursor to the home position as well
 
   time.sleep(1) # give a sec for system messages to complete
   # myLCD.setCursor(0,0) # This action is optional. The default cursor position is at char 0, on row 0
