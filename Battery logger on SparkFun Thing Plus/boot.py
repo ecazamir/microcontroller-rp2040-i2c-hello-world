@@ -3,12 +3,14 @@ import os, machine  # RTC, SPI
 import qwiic_i2c  # mpremote mip install github:sparkfun/qwiic_i2c_py
 import qwiic_rv8803  # mpremote mip install github:sparkfun/qwiic_rv-8803_py
 import qwiic_ads1015  # mpremote mip install github:sparkfun/qwiic_ads1015_py
+import qwiic_max1704x  # mpremote mip install github:sparkfun/qwiic_max1704x_py
 from sdcard import SDCard  # need to `mpremote mip install sdcard`
 
 SD_MOUNT_PATH = "/sd"
 VOLTAGE_LOG_FILE = SD_MOUNT_PATH + "/voltage.log"
 HW_CLOCK_SF_RV8803_ATTACHED = False
 ADC_ADS1015_ATTACHED = False
+MAX1704x_BATTERY_GAUGE_PRESENT = False
 
 # I2C bus details, platform-specific
 I2C_SDA_PIN = 6
@@ -16,11 +18,12 @@ I2C_SCL_PIN = 7
 I2C_FREQUENCY = 100000  # Should keep i2c frequency up to 400000, the embedded battery gauge may not support higher frequency
 HW_CLOCK_SF_RV8803_I2C_Address = 0x32
 ADC_ADS1015_I2C_Address = 0x48
+MAX1704x_I2C_Address = 0x36
 
 # I2C Device Map
 i2c_device_aliases = {
     HW_CLOCK_SF_RV8803_I2C_Address: "SparkFun RTC module RV-8803",
-    0x36: "SparkFun Thing Plus RP2040 Embedded Battery Gauge",
+    MAX1704x_I2C_Address: "SparkFun Thing Plus RP2040 Embedded Battery Gauge",
     ADC_ADS1015_I2C_Address: "Qwiic 12 Bit ADC - 4 Channel (ADS1015)",
 }
 
@@ -132,6 +135,33 @@ if ADC_ADS1015_ATTACHED:
         print("I2C connection to ADC module failed")
 else:
     print("I2C: ADC ADS 1015 module not found, not using it")
+
+
+# Initialize the battery gauge
+if MAX1704x_I2C_Address in i2c_device_addresses:
+    MAX1704x_BATTERY_GAUGE_PRESENT = True
+
+if MAX1704x_BATTERY_GAUGE_PRESENT:
+    MAX1704x_BATTERY_GAUGE=qwiic_max1704x.QwiicMAX1704X(qwiic_max1704x.QwiicMAX1704X.kDeviceTypeMAX17048)
+    if (MAX1704x_BATTERY_GAUGE.is_connected()):
+        MAX1704x_BATTERY_GAUGE.begin()
+        print("I2C connection to MAX1704x battery gauge")
+        print(f"  MAX1704x: Device ID: 0x{MAX1704x_BATTERY_GAUGE.get_id():02X}")
+        print(f"  MAX1704x: Device version: 0x{MAX1704x_BATTERY_GAUGE.get_version():02X}")
+        
+        print(f"  MAX1704x: Voltage: {MAX1704x_BATTERY_GAUGE.get_voltage():.3f}V")  # Print the battery voltage
+        print(f"  MAX1704x: SOC Percentage: {MAX1704x_BATTERY_GAUGE.get_soc():.2f}%")  # Print the battery state of charge with 2 decimal places
+        print(f"  MAX1704x: Change Rate: {MAX1704x_BATTERY_GAUGE.get_change_rate():.3f}%/hr")  # Print the battery change rate with 3 decimal places
+        print(f"  MAX1704x: Alert flag: {MAX1704x_BATTERY_GAUGE.get_alert()}")  # Print the generic alert flag
+        print(f"  MAX1704x: Voltage High Alert: {MAX1704x_BATTERY_GAUGE.is_voltage_high(True)}")  # Print the alert flag. Passing "True" also clears the flag
+        print(f"  MAX1704x: Voltage Low Alert: {MAX1704x_BATTERY_GAUGE.is_voltage_low(True)}")  # Print the alert flag. Passing "True" also clears the flag
+        print(f"  MAX1704x: Empty Alert: {MAX1704x_BATTERY_GAUGE.is_low()}")  # Print the alert flag
+        print(f"  MAX1704x: SOC 1% Change Alert: {MAX1704x_BATTERY_GAUGE.is_change()}")  # Print the alert flag
+        print(f"  MAX1704x: Hibernating: {MAX1704x_BATTERY_GAUGE.is_hibernating()}")  # Print the hibernation flag
+
+    else:
+        print("I2C connection to MAX1704x battery gauge is unsuccessful")
+
 
 # Mount the SD card
 try:
