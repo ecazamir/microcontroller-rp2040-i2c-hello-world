@@ -98,8 +98,11 @@ def log_data(timer=None):
         effective_voltage_a0 = adc_voltage_divisor_factor_a0 * adc_voltage_channel_a0
         adc0_value = f"{effective_voltage_a0}"
         # adc2_value = 12.2
+        battery_gauge_info = '"BG_VOLTAGE","BG_SOC"'
+        if MAX1704x_BATTERY_GAUGE_PRESENT:
+            battery_gauge_info = f'"{MAX1704x_BATTERY_GAUGE.get_voltage():.3f}","{MAX1704x_BATTERY_GAUGE.get_soc():.2f}"'
         # Format log entry
-        log_entry = f'"{timestamp}","{adc0_value}","{ADC_MODULE.get_multiplier()}"'
+        log_entry = f'"{timestamp}",{battery_gauge_info},"{adc0_value}","{ADC_MODULE.get_multiplier()}"'
 
         # Write to the file
         with open(log_file_name, "a") as log_file:
