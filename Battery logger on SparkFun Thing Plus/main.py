@@ -92,17 +92,19 @@ def log_data(timer=None):
         log_file_name = get_log_file_name()
         # Read the internal temperature sensor value
         # Read voltage from ADS1015/A0
-        # adc_multiplier = ADC_MODULE.get_multiplier()
-        adc_voltage_divisor_factor_a0 = 10.0
-        adc_voltage_channel_a0 = ADC_MODULE.get_single_ended(0)
-        effective_voltage_a0 = adc_voltage_divisor_factor_a0 * adc_voltage_channel_a0
-        adc0_value = f"{effective_voltage_a0}"
+        if ADC_ADS1015_ATTACHED:
+            adc_voltage_divisor_factor_a0 = 10.0
+            adc_voltage_channel_a0 = ADC_MODULE.get_single_ended(0)
+            effective_voltage_a0 = adc_voltage_divisor_factor_a0 * adc_voltage_channel_a0
+            adc0_value = f"{effective_voltage_a0}"
+        else:
+            adc0_value = "NaN"
         # adc2_value = 12.2
         battery_gauge_info = '"BG_VOLTAGE","BG_SOC"'
         if MAX1704x_BATTERY_GAUGE_PRESENT:
             battery_gauge_info = f'"{MAX1704x_BATTERY_GAUGE.get_voltage():.3f}","{MAX1704x_BATTERY_GAUGE.get_soc():.2f}"'
         # Format log entry
-        log_entry = f'"{timestamp}",{battery_gauge_info},"{adc0_value}","{ADC_MODULE.get_multiplier()}"'
+        log_entry = f'"{timestamp}",{battery_gauge_info},"{adc0_value}","{ADC_Multiplier}"'
 
         # Write to the file
         with open(log_file_name, "a") as log_file:
@@ -112,22 +114,26 @@ def log_data(timer=None):
         # EFB battery SOC: 11.90 = 40%, 12.32 = 70%
         # https://www.briskoda.net/forums/topic/489933-anyone-know-what-battery-voltage-efb-there-should-be/
         blink()
-        rgb_led_for_12v_agm(current_value=effective_voltage_a0)
+        if ADC_ADS1015_ATTACHED:
+            rgb_led_for_12v_agm(current_value=effective_voltage_a0)
     except Exception as e:
-        print("log_data: An error occurred acquiring data or saving it to the log", e)
+        print("log_data: An error occurred acquiring data or saving it to the log:", e)
 
 
 print(f"Timestamp: {get_timestamp()}")
 
-print("Creating the timer with callback to log_data()")
-log_timer = Timer(period=1000, mode=Timer.PERIODIC, callback=log_data)
-
 # Keep the program running
-try:
-    print("Entering the loop...")
-    while True:
-        utime.sleep(1)
-except KeyboardInterrupt:
-    # Clean up and stop the timer on keyboard interrupt
-    log_timer.deinit()
-    print("Keyboard Interrupt, terminating program")
+if ADC_ADS1015_ATTACHED:
+    try:
+        print("Creating the timer with callback to log_data()")
+        log_timer = Timer(period=1000, mode=Timer.PERIODIC, callback=log_data)
+        print("Entering the loop...")
+        while True:
+            utime.sleep(1)
+    except KeyboardInterrupt:
+        # Clean up and stop the timer on keyboard interrupt
+        log_timer.deinit()
+        print("Keyboard Interrupt, terminating program")
+else:
+    led_pin.on()
+    print("An ADC module is not found. Terminating program.")

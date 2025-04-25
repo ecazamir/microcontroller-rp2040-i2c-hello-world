@@ -5,6 +5,7 @@ import qwiic_rv8803  # mpremote mip install github:sparkfun/qwiic_rv-8803_py
 import qwiic_ads1015  # mpremote mip install github:sparkfun/qwiic_ads1015_py
 import qwiic_max1704x  # mpremote mip install github:sparkfun/qwiic_max1704x_py
 from sdcard import SDCard  # need to `mpremote mip install sdcard`
+import utime
 
 SD_MOUNT_PATH = "/sd"
 VOLTAGE_LOG_FILE = SD_MOUNT_PATH + "/voltage.log"
@@ -131,23 +132,30 @@ if ADC_ADS1015_ATTACHED:
         print(
             f"  sampling rate: 0x{ADC_MODULE.get_sample_rate():04x} ({ads1015_sample_rate_map[ADC_MODULE.get_sample_rate()]})"
         )
+        ADC_Multiplier = ADC_MODULE.get_multiplier()
     else:
         print("I2C connection to ADC module failed")
 else:
     print("I2C: ADC ADS 1015 module not found, not using it")
-
+    ADC_Multiplier = 1.0
 
 # Initialize the battery gauge
 if MAX1704x_I2C_Address in i2c_device_addresses:
     MAX1704x_BATTERY_GAUGE_PRESENT = True
 
 if MAX1704x_BATTERY_GAUGE_PRESENT:
-    MAX1704x_BATTERY_GAUGE=qwiic_max1704x.QwiicMAX1704X(qwiic_max1704x.QwiicMAX1704X.kDeviceTypeMAX17048)
+    MAX1704x_BATTERY_GAUGE=qwiic_max1704x.QwiicMAX1704X(device_type=qwiic_max1704x.QwiicMAX1704X.kDeviceTypeMAX17048, address=MAX1704x_I2C_Address, i2c_driver=i2c_bus)
     if (MAX1704x_BATTERY_GAUGE.is_connected()):
         MAX1704x_BATTERY_GAUGE.begin()
         print("I2C connection to MAX1704x battery gauge")
         print(f"  MAX1704x: Device ID: 0x{MAX1704x_BATTERY_GAUGE.get_id():02X}")
         print(f"  MAX1704x: Device version: 0x{MAX1704x_BATTERY_GAUGE.get_version():02X}")
+        MAX1704x_BATTERY_GAUGE.reset()
+        utime.sleep(1)
+        # print("Battery empty threshold is currently: {}%".format(MAX1704x_BATTERY_GAUGE.get_threshold()))
+        # MAX1704x_BATTERY_GAUGE.set_threshold(10) # Set alert threshold to 10%.
+        # high_voltage = MAX1704x_BATTERY_GAUGE.get_valrt_max() * 0.02 # 1 LSb is 20mV. Convert to Volts.
+        # print("High voltage threshold is currently: {:.2f}V".format(high_voltage))
         
         print(f"  MAX1704x: Voltage: {MAX1704x_BATTERY_GAUGE.get_voltage():.3f}V")  # Print the battery voltage
         print(f"  MAX1704x: SOC Percentage: {MAX1704x_BATTERY_GAUGE.get_soc():.2f}%")  # Print the battery state of charge with 2 decimal places
@@ -158,7 +166,7 @@ if MAX1704x_BATTERY_GAUGE_PRESENT:
         print(f"  MAX1704x: Empty Alert: {MAX1704x_BATTERY_GAUGE.is_low()}")  # Print the alert flag
         print(f"  MAX1704x: SOC 1% Change Alert: {MAX1704x_BATTERY_GAUGE.is_change()}")  # Print the alert flag
         print(f"  MAX1704x: Hibernating: {MAX1704x_BATTERY_GAUGE.is_hibernating()}")  # Print the hibernation flag
-
+        
     else:
         print("I2C connection to MAX1704x battery gauge is unsuccessful")
 
